@@ -3,5 +3,5 @@
     "serverless": "^1.74.1",
     "serverless-rust": "^0.3.8"
   },
-  "name": "my-new-app"
+  "name": "learning-lambda-rust"
 }

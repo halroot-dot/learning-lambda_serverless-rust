@@ -1,33 +1,67 @@
-use lambda::{handler_fn, Context};
-use serde_json::Value;
+use env_logger;
+use lambda_runtime::{error::HandlerError, lambda, Context};
+use log::{debug, error, info, warn};
+use rusoto_core::Region;
+use serde_derive::{Deserialize, Serialize};
+use serde_dynamodb;
+use serde_json::{map::ValuesMut, Value};
+use std::collections::HashMap;
+use std::default::Default;
+use std::env;
+use std::error::Error;
 
-type Error = Box<dyn std::error::Error + Sync + Send + 'static>;
+use rusoto_dynamodb::{AttributeValue, DynamoDb, DynamoDbClient, GetItemInput};
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
-    lambda::run(handler_fn(handler)).await?;
+#[derive(Serialize, Deserialize, Debug, Default)]
+struct CustomEvent {
+    id: String,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default)]
+struct CustomOutput {
+    id: String,
+    first_name: String,
+    last_name: String,
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    env::set_var("RUST_LOG", "info");
+    env_logger::init();
+    println!("Hello World");
+    lambda!(handler);
     Ok(())
 }
 
-async fn handler(event: Value, _: Context) -> Result<Value, Error> {
-    Ok(event)
-}
+fn handler(event: CustomEvent, ctx: Context) -> Result<CustomOutput, HandlerError> {
+    println!("input: CustomEvent is {:?}", event);
+    let mut query_key: HashMap<String, AttributeValue> = HashMap::new();
+    query_key.insert(
+        "id".to_string(),
+        AttributeValue {
+            s: Some(event.id),
+            ..Default::default()
+        },
+    );
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
+    let input: GetItemInput = GetItemInput {
+        table_name: "learning_lambda_rust".to_string(),
+        key: query_key,
+        ..Default::default()
+    };
 
-    #[tokio::test]
-    async fn handler_handles() {
-        let event = json!({
-            "answer": 42
-        });
-        assert_eq!(
-            handler(event.clone(), Context::default())
-                .await
-                .expect("expected Ok(_) value"),
-            event
-        )
+    let client = DynamoDbClient::new(Region::ApNortheast1);
+    match client.get_item(input).sync() {
+        Ok(result) => match result.item {
+            Some(item) => {
+                println!("item is {:?}", item);
+
+                Ok(serde_dynamodb::from_hashmap(item).unwrap())
+            }
+            None => {
+                error!("{}", "no item was found.");
+                Ok(Default::default())
+            }
+        },
+        Err(error) => Err(ctx.new_error(error.description())),
     }
 }

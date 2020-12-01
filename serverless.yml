@@ -10,15 +10,32 @@
 #    docs.serverless.com
 #
 # Happy Coding!
-service: my-new-app
+service: learning-lambda-rust
 provider:
   name: aws
   runtime: rust
   memorySize: 128
-# you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
+  region: ap-northeast-1
+  # you can overwrite defaults here
+  #  stage: dev
+  #  region: us-east-1
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+    DYNAMODB_TABLE: "learning_lambda_rust"
 
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:Query"
+        - "dynamodb:Scan"
+        - "dynamodb:GetItem"
+        - "dynamodb:PutItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:DeleteItem"
+      Resource:
+        - "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+  apiGateway:
+    minimumCompressionSize: 1024
 # you can add statements to the Lambda function's IAM Role here
 #  iamRoleStatements:
 #    - Effect: "Allow"
@@ -51,6 +68,10 @@ functions:
     # or `{cargo-package-name}` for short when you are building a
     # default bin for a given package.
     handler: hello
+    events:
+      - http:
+          path: /
+          method: get
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details

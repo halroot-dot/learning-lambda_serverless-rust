@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-tokio = { version = "0.2", features = ["macros"] }
-lambda = { git = "https://github.com/awslabs/aws-lambda-rust-runtime/", branch = "master"}
-serde_json = "1.0"
+lambda_runtime = "0.1"
+log = "0.4.6"
+env_logger = "0.6.0"
+rusoto_core = "0.36.0"
+rusoto_dynamodb = "0.36.0"
+serde = "1.0.84"
+serde_derive = "1.0.84"
+serde_json = "1.0.34"
+serde_dynamodb = { git = "https://github.com/mockersf/serde_dynamodb.git", rev = "79e3dd7765574dce64a283a3ffb32f45079100b4" }
