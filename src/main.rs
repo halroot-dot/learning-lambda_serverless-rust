@@ -1,16 +1,14 @@
-use env_logger;
-use lambda_runtime::{error::HandlerError, lambda, Context};
-use log::{debug, error, info, warn};
+use lambda::{handler_fn, Context};
+use lambda_runtime::error::HandlerError;
 use rusoto_core::Region;
+
 use serde_derive::{Deserialize, Serialize};
-use serde_dynamodb;
-use serde_json::{map::ValuesMut, Value};
 use std::collections::HashMap;
 use std::default::Default;
-use std::env;
-use std::error::Error;
 
 use rusoto_dynamodb::{AttributeValue, DynamoDb, DynamoDbClient, GetItemInput};
+
+type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct CustomEvent {
@@ -24,44 +22,42 @@ struct CustomOutput {
     last_name: String,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    env::set_var("RUST_LOG", "info");
-    env_logger::init();
-    println!("Hello World");
-    lambda!(handler);
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    lambda::run(handler_fn(get_handler)).await?;
     Ok(())
 }
 
-fn handler(event: CustomEvent, ctx: Context) -> Result<CustomOutput, HandlerError> {
+async fn get_handler(event: CustomEvent, _ctx: Context) -> Result<CustomOutput, HandlerError> {
     println!("input: CustomEvent is {:?}", event);
-    let mut query_key: HashMap<String, AttributeValue> = HashMap::new();
+
+    let mut query_key = HashMap::new();
     query_key.insert(
-        "id".to_string(),
+        String::from("id"),
         AttributeValue {
-            s: Some(event.id),
+            s: Some(String::from(event.id)),
             ..Default::default()
         },
     );
 
     let input: GetItemInput = GetItemInput {
-        table_name: "learning_lambda_rust".to_string(),
+        table_name: String::from("learning_lambda_rust"),
         key: query_key,
         ..Default::default()
     };
 
     let client = DynamoDbClient::new(Region::ApNortheast1);
-    match client.get_item(input).sync() {
+    match client.get_item(input).await {
         Ok(result) => match result.item {
             Some(item) => {
-                println!("item is {:?}", item);
-
+                println!("item in database: {:?}", item);
                 Ok(serde_dynamodb::from_hashmap(item).unwrap())
             }
             None => {
-                error!("{}", "no item was found.");
+                println!("no item in database");
                 Ok(Default::default())
             }
         },
-        Err(error) => Err(ctx.new_error(error.description())),
+        Err(error) => panic!("Error: {:?}", error),
     }
 }
