@@ -35,7 +35,7 @@ async fn get_handler(event: CustomEvent, _ctx: Context) -> Result<CustomOutput, 
     query_key.insert(
         String::from("id"),
         AttributeValue {
-            s: Some(String::from(event.id)),
+            s: Some(event.id),
             ..Default::default()
         },
     );

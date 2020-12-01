@@ -63,11 +63,17 @@ plugins:
   - serverless-rust
 
 functions:
-  hello:
+  put_handler:
     # handler value syntax is `{cargo-package-name}.{bin-name}`
     # or `{cargo-package-name}` for short when you are building a
     # default bin for a given package.
-    handler: hello
+    handler: put_handler
+    events:
+      - http:
+          path: /
+          method: put
+  get_handler:
+    handler: get_handler
     events:
       - http:
           path: /
