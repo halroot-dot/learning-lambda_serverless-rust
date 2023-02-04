@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-tokio = "1.8"
+tokio = "1.18"
 lambda = { git = "https://github.com/awslabs/aws-lambda-rust-runtime" }
 lambda_runtime = "0.2.1"
 rusoto_core = "0.45.0"
